@@ -1,9 +1,38 @@
 import { FormEvent, useState } from "react";
 import { ShieldCheck } from "lucide-react";
-import { api, UserSession } from "../api/client";
+import { api, BrowserDeviceIdentity, UserSession } from "../api/client";
 
 interface LoginPageProps {
   onLogin: (session: UserSession) => void;
+}
+
+const deviceTokenKey = "secure-spreadsheet.browser-device-token";
+const deviceNameKey = "secure-spreadsheet.browser-device-name";
+
+function randomHex(bytes: number): string {
+  const array = new Uint8Array(bytes);
+  crypto.getRandomValues(array);
+  return [...array].map((value) => value.toString(16).padStart(2, "0")).join("");
+}
+
+function browserName(): string {
+  const platform = navigator.platform || "Equipo";
+  const browser = navigator.userAgent.split(" ").at(-1) || "Navegador";
+  return `${platform} - ${browser}`.slice(0, 160);
+}
+
+function browserDeviceIdentity(): BrowserDeviceIdentity {
+  let token = localStorage.getItem(deviceTokenKey);
+  if (!token) {
+    token = randomHex(32);
+    localStorage.setItem(deviceTokenKey, token);
+  }
+  let name = localStorage.getItem(deviceNameKey);
+  if (!name) {
+    name = browserName();
+    localStorage.setItem(deviceNameKey, name);
+  }
+  return { browserDeviceToken: token, browserDeviceName: name };
 }
 
 export function LoginPage({ onLogin }: LoginPageProps): JSX.Element {
@@ -17,7 +46,7 @@ export function LoginPage({ onLogin }: LoginPageProps): JSX.Element {
     setLoading(true);
     setError("");
     try {
-      onLogin(await api.login(email, password));
+      onLogin(await api.login(email, password, undefined, browserDeviceIdentity()));
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo iniciar sesión.");
     } finally {

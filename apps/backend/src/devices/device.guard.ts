@@ -65,6 +65,9 @@ export class DeviceGuard implements CanActivate {
     if (appConfig.deviceSecurityMode === "development") {
       return req.header("X-Dev-Device-Fingerprint") ?? req.session.deviceFingerprint ?? "DEV-APPROVED";
     }
+    if (appConfig.deviceSecurityMode === "browser") {
+      return req.session.deviceFingerprint ?? null;
+    }
     if (req.header("X-Client-Verify") !== "SUCCESS") {
       return null;
     }

@@ -15,6 +15,16 @@ export class LoginDto {
   @IsOptional()
   @IsString()
   recoveryCode?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(32, 256)
+  browserDeviceToken?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(2, 160)
+  browserDeviceName?: string;
 }
 
 export class ChangePasswordDto {

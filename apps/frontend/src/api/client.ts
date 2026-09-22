@@ -91,6 +91,11 @@ export interface NotificationRow {
   createdAt: string;
 }
 
+export interface BrowserDeviceIdentity {
+  browserDeviceToken: string;
+  browserDeviceName: string;
+}
+
 let csrfToken: string | null = null;
 
 export async function ensureCsrf(): Promise<string> {
@@ -133,8 +138,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  login: (email: string, password: string, mfaCode?: string) =>
-    request<UserSession>("/auth/login", { method: "POST", body: JSON.stringify({ email, password, mfaCode }) }),
+  login: (email: string, password: string, mfaCode?: string, browserDevice?: BrowserDeviceIdentity) =>
+    request<UserSession>("/auth/login", { method: "POST", body: JSON.stringify({ email, password, mfaCode, ...browserDevice }) }),
   me: () => request<UserSession>("/auth/me"),
   logout: () => request<{ ok: true }>("/auth/logout", { method: "POST" }),
   dashboard: () => request<DashboardStats>("/admin/dashboard"),

@@ -67,7 +67,7 @@ export class AuthService {
       await this.audit.fromRequest(req, "MFA_SUCCESS", { userId: user.id });
     }
 
-    const device = user.role === "EMPLOYEE" ? await this.resolveLoginDevice(req, user.id) : null;
+    const device = user.role === "EMPLOYEE" ? await this.resolveLoginDevice(req, user, dto) : null;
     const previousSessionId = req.sessionID;
     await regenerateSession(req);
     req.session.userId = user.id;
@@ -119,14 +119,37 @@ export class AuthService {
     await this.audit.fromRequest(req, "LOGIN_FAILED", { userId: user.id, metadata: { failedLoginCount: user.failedLoginCount } });
   }
 
-  private async resolveLoginDevice(req: Request, userId: string): Promise<Device> {
-    const fingerprint = this.currentFingerprint(req);
+  private async resolveLoginDevice(req: Request, user: User, dto: LoginDto): Promise<Device> {
+    const fingerprint = this.currentLoginFingerprint(req, user.id, dto);
     if (!fingerprint) {
       throw new ErrorCodeException("DEVICE_REQUIRED", "Dispositivo autorizado requerido.", HttpStatus.FORBIDDEN);
     }
-    const device = await this.devices.findOne({ where: { userId, certificateFingerprint: fingerprint } });
+    const device = await this.devices.findOne({ where: { userId: user.id, certificateFingerprint: fingerprint } });
     if (!device) {
-      await this.audit.fromRequest(req, "DEVICE_REJECTED", { userId, metadata: { fingerprint } });
+      if (appConfig.deviceSecurityMode === "browser") {
+        const pendingDevice = await this.devices.save(this.devices.create({
+          userId: user.id,
+          name: dto.browserDeviceName?.trim() || this.browserDeviceName(req),
+          certificateSerial: fingerprint,
+          certificateFingerprint: fingerprint,
+          certificateSubject: `browser:${user.email}`,
+          status: "PENDING",
+          approvedAt: null,
+          approvedBy: null,
+          revokedAt: null,
+          revokedBy: null,
+          lastIp: req.ip ?? null,
+          lastSeenAt: null,
+          lastUserAgent: req.header("user-agent") ?? null
+        }));
+        await this.audit.fromRequest(req, "DEVICE_ENROLLMENT_REQUESTED", {
+          userId: user.id,
+          deviceId: pendingDevice.id,
+          metadata: { mode: "browser", fingerprint }
+        });
+        throw new ErrorCodeException("DEVICE_PENDING", "Dispositivo pendiente de aprobaciÃ³n.", HttpStatus.FORBIDDEN);
+      }
+      await this.audit.fromRequest(req, "DEVICE_REJECTED", { userId: user.id, metadata: { fingerprint } });
       throw new ErrorCodeException("DEVICE_NOT_APPROVED", "Dispositivo no aprobado.", HttpStatus.FORBIDDEN);
     }
     if (device.status === "PENDING") {
@@ -138,14 +161,26 @@ export class AuthService {
     return device;
   }
 
-  private currentFingerprint(req: Request): string | null {
+  private currentLoginFingerprint(req: Request, userId: string, dto: LoginDto): string | null {
     if (appConfig.deviceSecurityMode === "development") {
       return req.header("X-Dev-Device-Fingerprint") ?? "DEV-APPROVED";
+    }
+    if (appConfig.deviceSecurityMode === "browser") {
+      return dto.browserDeviceToken ? this.browserFingerprint(userId, dto.browserDeviceToken) : null;
     }
     if (req.header("X-Client-Verify") !== "SUCCESS") {
       return null;
     }
     return req.header("X-Client-Fingerprint") ?? null;
+  }
+
+  private browserFingerprint(userId: string, token: string): string {
+    return `BROWSER-${this.crypto.sha256Hex(`${userId}:${token}`).toUpperCase()}`;
+  }
+
+  private browserDeviceName(req: Request): string {
+    const userAgent = req.header("user-agent") ?? "Navegador";
+    return userAgent.slice(0, 120);
   }
 
   private async enforceSingleSession(userId: string, sessionId: string, previousSessionId: string): Promise<void> {

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-export type DeviceSecurityMode = "development" | "mtls";
+export type DeviceSecurityMode = "development" | "mtls" | "browser";
 export type SessionCookieSameSite = "strict" | "lax" | "none";
 
 export interface AppConfig {
@@ -92,11 +92,11 @@ export function loadAppConfig(): AppConfig {
   const nodeEnv = process.env.NODE_ENV ?? "development";
   const isProduction = nodeEnv === "production";
   const deviceSecurityMode = (process.env.DEVICE_SECURITY_MODE ?? "development") as DeviceSecurityMode;
-  if (!["development", "mtls"].includes(deviceSecurityMode)) {
-    throw new Error("DEVICE_SECURITY_MODE must be either development or mtls");
+  if (!["development", "mtls", "browser"].includes(deviceSecurityMode)) {
+    throw new Error("DEVICE_SECURITY_MODE must be one of: development, mtls, browser");
   }
-  if (isProduction && deviceSecurityMode !== "mtls") {
-    throw new Error("Refusing to start production without DEVICE_SECURITY_MODE=mtls");
+  if (isProduction && deviceSecurityMode === "development") {
+    throw new Error("Refusing to start production with DEVICE_SECURITY_MODE=development");
   }
   const frontendOrigin = normalizeOrigin(required("FRONTEND_ORIGIN", "http://localhost:5173"));
   const frontendOrigins = uniqueValues([frontendOrigin, ...csvValue("FRONTEND_ORIGINS").map(normalizeOrigin)]);
@@ -144,10 +144,11 @@ function assertProductionFiles(config: AppConfig): void {
   const requiredFiles = [
     config.sessionSecretFile,
     config.masterEncryptionKeyFile,
-    config.auditHmacKeyFile,
-    config.deviceCaCertFile,
-    config.deviceCaKeyFile
+    config.auditHmacKeyFile
   ];
+  if (config.deviceSecurityMode === "mtls") {
+    requiredFiles.push(config.deviceCaCertFile, config.deviceCaKeyFile);
+  }
   for (const file of requiredFiles) {
     if (!existsSync(file)) {
       throw new Error(`Missing required production secret file: ${file}`);

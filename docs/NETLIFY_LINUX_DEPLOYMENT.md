@@ -37,7 +37,7 @@ FRONTEND_ORIGIN=https://almacenlasbalinerasexcel.netlify.app
 FRONTEND_ORIGINS=
 TRUST_PROXY=true
 SESSION_COOKIE_SAME_SITE=none
-DEVICE_SECURITY_MODE=mtls
+DEVICE_SECURITY_MODE=browser
 ```
 
 `FRONTEND_ORIGIN` must not end with `/`. If you later add a custom Netlify domain, add it to `FRONTEND_ORIGINS` as a comma-separated value and restart the backend.
@@ -48,11 +48,10 @@ Install packages and directories:
 sudo scripts/server/bootstrap-ubuntu.sh
 ```
 
-Generate secrets and the device CA:
+Generate secrets. The device CA is only needed if you switch back to `DEVICE_SECURITY_MODE=mtls`:
 
 ```bash
 sudo scripts/server/generate-secrets.sh
-sudo scripts/server/generate-device-ca.sh
 ```
 
 Issue TLS for the backend domain:
@@ -71,4 +70,6 @@ The deploy script builds and publishes the backend only. To also publish the fro
 
 ## Important
 
-The browser should call `https://excelseguro.duckdns.org/api` directly. Do not proxy `/api` through Netlify, because device mTLS needs the browser to connect to the backend domain so Nginx can read the client certificate.
+The browser should call `https://excelseguro.duckdns.org/api` directly.
+
+With `DEVICE_SECURITY_MODE=browser`, employees do not install certificates. On the first login from a new browser, the backend creates a pending device. The admin approves it in `Dispositivos`, then the employee logs in again from that same browser.

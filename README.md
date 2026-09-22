@@ -8,7 +8,7 @@ Private web workspace for highly confidential `.xlsx` files. Employees edit only
 - Backend: NestJS + TypeScript, listening on `127.0.0.1:3000`.
 - Frontend: React + Vite build published to Netlify.
 - Files: encrypted AES-256-GCM under `/opt/secure-spreadsheet/storage`.
-- Device trust: Nginx mTLS verifies client certificates and forwards trusted certificate metadata to NestJS.
+- Device trust: employees can be approved by browser device token, with optional mTLS support for stricter deployments.
 
 No Docker, Docker Compose, Podman, Kubernetes or containers are used.
 
@@ -34,7 +34,7 @@ Production must use:
 
 ```env
 NODE_ENV=production
-DEVICE_SECURITY_MODE=mtls
+DEVICE_SECURITY_MODE=browser
 ```
 
 The backend refuses to start in production if required secret files are missing.
@@ -71,11 +71,10 @@ No production admin password is hardcoded.
 ## Device Enrollment
 
 1. Admin creates an employee.
-2. Admin generates an enrollment token.
-3. The employee PC runs `scripts/windows/enroll-device.ps1`.
-4. The backend signs the CSR with the internal CA and creates a `PENDING` device.
-5. Admin approves the device.
-6. Employee login works only with the approved certificate.
+2. Employee attempts login from their browser.
+3. The backend creates a `PENDING` device for that browser.
+4. Admin approves the device in `Dispositivos`.
+5. Employee logs in again from the same browser.
 
 ## Deployment
 
