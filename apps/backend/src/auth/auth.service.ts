@@ -166,7 +166,7 @@ export class AuthService {
       return req.header("X-Dev-Device-Fingerprint") ?? "DEV-APPROVED";
     }
     if (appConfig.deviceSecurityMode === "browser") {
-      return dto.browserDeviceToken ? this.browserFingerprint(userId, dto.browserDeviceToken) : null;
+      return this.browserFingerprint(userId, dto.browserDeviceToken ?? this.browserFallbackToken(req));
     }
     if (req.header("X-Client-Verify") !== "SUCCESS") {
       return null;
@@ -176,6 +176,12 @@ export class AuthService {
 
   private browserFingerprint(userId: string, token: string): string {
     return `BROWSER-${this.crypto.sha256Hex(`${userId}:${token}`).toUpperCase()}`;
+  }
+
+  private browserFallbackToken(req: Request): string {
+    const forwardedFor = req.header("x-forwarded-for") ?? "";
+    const userAgent = req.header("user-agent") ?? "";
+    return `fallback:${req.ip ?? ""}:${forwardedFor}:${userAgent}`;
   }
 
   private browserDeviceName(req: Request): string {
