@@ -3,10 +3,23 @@ import type { NextFunction, Request, Response } from "express";
 import { appConfig } from "../config/app-config";
 
 const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
-const EXEMPT_PATHS = new Set(["/api/auth/csrf", "/api/auth/login", "/api/health", "/api/enrollment/submit"]);
+const EXEMPT_PATH_SUFFIXES = ["/auth/csrf", "/auth/login", "/health", "/enrollment/submit"];
+
+function pathWithoutQuery(value: string | undefined): string {
+  return value?.split("?")[0] ?? "";
+}
+
+function isExemptPath(req: Request): boolean {
+  const paths = [
+    pathWithoutQuery(req.path),
+    pathWithoutQuery(req.url),
+    pathWithoutQuery(req.originalUrl)
+  ];
+  return paths.some((path) => EXEMPT_PATH_SUFFIXES.some((suffix) => path === suffix || path.endsWith(suffix)));
+}
 
 export function csrfMiddleware(req: Request, res: Response, next: NextFunction): void {
-  if (!MUTATING.has(req.method) || EXEMPT_PATHS.has(req.path)) {
+  if (!MUTATING.has(req.method) || isExemptPath(req)) {
     next();
     return;
   }
