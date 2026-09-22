@@ -21,7 +21,7 @@ Set this Netlify environment variable if you override the file value:
 VITE_API_BASE_URL=https://excelseguro.duckdns.org/api
 ```
 
-After the first Netlify deploy, copy the final frontend URL, for example `https://nombre-del-sitio.netlify.app`.
+Frontend URL: `https://almacenlasbalinerasexcel.netlify.app`.
 
 ## Backend On Linux
 
@@ -31,9 +31,9 @@ Create `/etc/secure-spreadsheet/production.env` from `.env.example` and set the 
 
 ```env
 NODE_ENV=production
-APP_URL=https://nombre-del-sitio.netlify.app
+APP_URL=https://almacenlasbalinerasexcel.netlify.app
 API_URL=https://excelseguro.duckdns.org/api
-FRONTEND_ORIGIN=https://nombre-del-sitio.netlify.app
+FRONTEND_ORIGIN=https://almacenlasbalinerasexcel.netlify.app
 FRONTEND_ORIGINS=
 TRUST_PROXY=true
 SESSION_COOKIE_SAME_SITE=none
