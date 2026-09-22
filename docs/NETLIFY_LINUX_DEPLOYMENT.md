@@ -1,0 +1,74 @@
+# Netlify Frontend + Linux Backend
+
+Target:
+
+- Backend API: `https://excelseguro.duckdns.org/api`
+- Frontend: any Netlify site URL or custom Netlify domain.
+
+## Frontend On Netlify
+
+Use the repository root as the Netlify base directory. The included `netlify.toml` sets:
+
+```toml
+[build]
+  command = "npm run build --workspace @secure-spreadsheet/shared && npm run build --workspace @secure-spreadsheet/frontend"
+  publish = "apps/frontend/dist"
+```
+
+Set this Netlify environment variable if you override the file value:
+
+```env
+VITE_API_BASE_URL=https://excelseguro.duckdns.org/api
+```
+
+After the first Netlify deploy, copy the final frontend URL, for example `https://nombre-del-sitio.netlify.app`.
+
+## Backend On Linux
+
+Point the DuckDNS DNS record for `excelseguro.duckdns.org` to the server public IP.
+
+Create `/etc/secure-spreadsheet/production.env` from `.env.example` and set the final Netlify origin exactly:
+
+```env
+NODE_ENV=production
+APP_URL=https://nombre-del-sitio.netlify.app
+API_URL=https://excelseguro.duckdns.org/api
+FRONTEND_ORIGIN=https://nombre-del-sitio.netlify.app
+FRONTEND_ORIGINS=
+TRUST_PROXY=true
+SESSION_COOKIE_SAME_SITE=none
+DEVICE_SECURITY_MODE=mtls
+```
+
+`FRONTEND_ORIGIN` must not end with `/`. If you later add a custom Netlify domain, add it to `FRONTEND_ORIGINS` as a comma-separated value and restart the backend.
+
+Install packages and directories:
+
+```bash
+sudo scripts/server/bootstrap-ubuntu.sh
+```
+
+Generate secrets and the device CA:
+
+```bash
+sudo scripts/server/generate-secrets.sh
+sudo scripts/server/generate-device-ca.sh
+```
+
+Issue TLS for the backend domain:
+
+```bash
+sudo certbot --nginx -d excelseguro.duckdns.org
+```
+
+Deploy backend:
+
+```bash
+sudo /opt/secure-spreadsheet/scripts/deploy.sh
+```
+
+The deploy script builds and publishes the backend only. To also publish the frontend to the Linux server for testing, run it with `DEPLOY_FRONTEND_ON_SERVER=true`.
+
+## Important
+
+The browser should call `https://excelseguro.duckdns.org/api` directly. Do not proxy `/api` through Netlify, because device mTLS needs the browser to connect to the backend domain so Nginx can read the client certificate.

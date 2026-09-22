@@ -1,0 +1,22 @@
+{
+  "name": "secure-spreadsheet-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Private encrypted spreadsheet workspace for controlled Excel editing.",
+  "workspaces": [
+    "apps/backend",
+    "apps/frontend",
+    "packages/shared"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @secure-spreadsheet/shared && npm run build --workspace @secure-spreadsheet/backend && npm run build --workspace @secure-spreadsheet/frontend",
+    "lint": "npm run lint --workspace @secure-spreadsheet/shared && npm run lint --workspace @secure-spreadsheet/backend && npm run lint --workspace @secure-spreadsheet/frontend",
+    "test": "npm run test --workspace @secure-spreadsheet/shared && npm run test --workspace @secure-spreadsheet/backend && npm run test --workspace @secure-spreadsheet/frontend",
+    "audit:prod": "npm audit --omit=dev",
+    "generate:fixture": "npm run generate:fixture --workspace @secure-spreadsheet/backend"
+  },
+  "engines": {
+    "node": ">=24.21.0 <25",
+    "npm": ">=11"
+  }
+}

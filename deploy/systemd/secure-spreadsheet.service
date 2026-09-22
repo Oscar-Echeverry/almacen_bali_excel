@@ -1,0 +1,31 @@
+[Unit]
+Description=Secure Spreadsheet Workspace NestJS backend
+After=network.target postgresql.service redis-server.service
+Wants=postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=securesheet
+Group=securesheet
+WorkingDirectory=/opt/secure-spreadsheet/backend
+EnvironmentFile=/etc/secure-spreadsheet/production.env
+ExecStart=/usr/bin/node dist/main.js
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/secure-spreadsheet/storage /opt/secure-spreadsheet/tmp /opt/secure-spreadsheet/backups
+ReadOnlyPaths=/opt/secure-spreadsheet/secrets /etc/secure-spreadsheet
+CapabilityBoundingSet=
+AmbientCapabilities=
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target
