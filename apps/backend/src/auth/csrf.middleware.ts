@@ -3,7 +3,7 @@ import type { NextFunction, Request, Response } from "express";
 import { appConfig } from "../config/app-config";
 
 const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
-const EXEMPT_PATHS = new Set(["/api/auth/csrf", "/api/health", "/api/enrollment/submit"]);
+const EXEMPT_PATHS = new Set(["/api/auth/csrf", "/api/auth/login", "/api/health", "/api/enrollment/submit"]);
 
 export function csrfMiddleware(req: Request, res: Response, next: NextFunction): void {
   if (!MUTATING.has(req.method) || EXEMPT_PATHS.has(req.path)) {

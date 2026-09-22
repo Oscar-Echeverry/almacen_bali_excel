@@ -108,10 +108,14 @@ export async function ensureCsrf(): Promise<string> {
   return csrfToken;
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+interface RequestOptions {
+  csrf?: boolean;
+}
+
+async function request<T>(path: string, init: RequestInit = {}, options: RequestOptions = {}): Promise<T> {
   const method = init.method ?? "GET";
   const headers = new Headers(init.headers);
-  if (method !== "GET") {
+  if (method !== "GET" && options.csrf !== false) {
     headers.set("X-CSRF-Token", await ensureCsrf());
   }
   if (init.body && !(init.body instanceof FormData)) {
@@ -138,8 +142,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  login: (email: string, password: string, mfaCode?: string, browserDevice?: BrowserDeviceIdentity) =>
-    request<UserSession>("/auth/login", { method: "POST", body: JSON.stringify({ email, password, mfaCode, ...browserDevice }) }),
+  login: async (email: string, password: string, mfaCode?: string, browserDevice?: BrowserDeviceIdentity) => {
+    const session = await request<UserSession>("/auth/login", { method: "POST", body: JSON.stringify({ email, password, mfaCode, ...browserDevice }) }, { csrf: false });
+    csrfToken = null;
+    return session;
+  },
   me: () => request<UserSession>("/auth/me"),
   logout: () => request<{ ok: true }>("/auth/logout", { method: "POST" }),
   dashboard: () => request<DashboardStats>("/admin/dashboard"),

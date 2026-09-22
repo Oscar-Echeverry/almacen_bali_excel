@@ -12,9 +12,9 @@ describe("LoginPage", () => {
 
   it("submits credentials", async () => {
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ csrfToken: "csrf" }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ id: "u1", role: "ADMIN", sessionPublicId: "SES-1", deviceId: null }) });
     vi.stubGlobal("fetch", fetchMock);
+    localStorage.clear();
     const onLogin = vi.fn();
     render(<LoginPage onLogin={onLogin} />);
     await userEvent.type(screen.getByLabelText("Email"), "admin@example.local");
